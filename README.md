@@ -163,18 +163,45 @@ The detection rule is defined in [detections/eventbridge-sensitive-lambda-role.j
 #### Detection Evidence:
 - **EventBridge Triggered**: [screenshots/10-eventbridge-detection-triggered.png](screenshots/10-eventbridge-detection-triggered.png)
 - **CloudWatch Log Group Created**: [screenshots/11-cloudwatch-detection-log-group-created.png](screenshots/11-cloudwatch-detection-log-group-created.png)
+- **Sanitized CloudTrail Event**: [cloudtrail-events/create-function-sensitive-role-detection.json](cloudtrail-events/create-function-sensitive-role-detection.json)
 
 ## Remediation
 
-Recommended controls include:
+To prevent privilege escalation via Lambda functions, we implemented a restricted developer IAM policy that limits permissions to pre-approved resources:
 
-- Restrict `iam:PassRole` to specific role ARNs
-- Use the `iam:PassedToService` condition
-- Restrict which Lambda functions a developer can create or modify
-- Prevent developers from passing roles with access to sensitive resources
-- Review trust policies and execution-role permissions
-- Monitor CloudTrail for `CreateFunction`, role passing, and sensitive S3 access
-- Use permission boundaries and service control policies where appropriate
+1. **Restricted Function Scope**: The developer can only manage Lambda functions named `iam-escalation-lab-approved-*`.
+2. **Restricted Role Scope**: The developer can only pass the pre-approved execution role `iam-escalation-lab-approved-role`.
+
+The remediated IAM policy is defined in [remediation/safer-developer-policy.json](remediation/safer-developer-policy.json):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageApprovedLabFunctions",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:InvokeFunction",
+        "lambda:DeleteFunction"
+      ],
+      "Resource": "arn:aws:lambda:us-east-1:ACCOUNT-ID:function:iam-escalation-lab-approved-*"
+    },
+    {
+      "Sid": "ViewApprovedExecutionRole",
+      "Effect": "Allow",
+      "Action": "iam:GetRole",
+      "Resource": "arn:aws:iam::ACCOUNT-ID:role/iam-escalation-lab-approved-role"
+    }
+  ]
+}
+```
+
+### Remediation Evidence:
+- **Updated Developer Policy**: [screenshots/13-remediation-policy-updated.png](screenshots/13-remediation-policy-updated.png)
+- **Blocked Attempt to Escalation**: [screenshots/12-remediation-create-function-denied.png](screenshots/12-remediation-create-function-denied.png)
 
 ## Next phase
 
