@@ -1,0 +1,6 @@
+*.zip
+*.log
+lambda-response.json
+downloaded-protected-file.txt
+.aws/
+.env
